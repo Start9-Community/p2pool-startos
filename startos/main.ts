@@ -67,7 +67,7 @@ export const main = sdk.setupMain(async ({ effects }) => {
 
   const args = argsList as [string, ...string[]]
 
-  const subcontainer = await sdk.SubContainer.of(
+  const subcontainer = sdk.SubContainer.of(
     effects,
     { imageId: 'p2pool' },
     mount,
