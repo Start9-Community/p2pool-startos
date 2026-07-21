@@ -5,7 +5,7 @@ export const manifest = setupManifest({
   id: 'p2pool',
   title: 'P2Pool',
   license: 'GPL-3.0',
-  packageRepo: 'https://github.com/rpriven/p2pool-startos',
+  packageRepo: 'https://github.com/Start9-Community/p2pool-startos',
   upstreamRepo: 'https://github.com/SChernykh/p2pool',
   marketingUrl: 'https://p2pool.io/',
   donationUrl: null,
