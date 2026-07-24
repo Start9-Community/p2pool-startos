@@ -1,7 +1,7 @@
 import { VersionInfo, IMPOSSIBLE } from '@start9labs/start-sdk'
 
 export const current = VersionInfo.of({
-  version: '4.17.1:0',
+  version: '4.17.1:1',
   releaseNotes: {
     en_US:
       'Updated P2Pool to 4.17.1. Recommended for all nodes: adds significant hardening against spam/DoS attacks (early filtering of invalid incoming blocks, P2P block-broadcast DoS hardening, parallel PoW checking) and fixes the startup sequence for configs that require many Monero headers, plus smaller bugfixes and an updated internal curl. Release notes: https://github.com/SChernykh/p2pool/releases/tag/v4.17.1 — Also includes internal updates for start-sdk 2.0.',
