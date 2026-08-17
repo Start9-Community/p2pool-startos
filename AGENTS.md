@@ -6,13 +6,13 @@ Develop it inside a StartOS packaging workspace created by `start-cli s9pk init-
 which provides the packaging guide and agent context one level up. If you're reading this in a
 bare clone with no workspace, the full guide is at <https://docs.start9.com/packaging>.
 
-Work this package's `TODO.md` from top to bottom. Keep `README.md` (architecture, for developers and LLMs) and `instructions.md` (end-user docs) in sync with your changes.
+Work this package's `TODO.md` from top to bottom. Keep `README.md` (technical reference for an AI support or administering agent) and `instructions.md` (end-user docs) in sync with your changes.
 
 ## This repo
 
-- **Package id is `p2pool`.** Exposes two raw-TCP interfaces: `stratum` (port 3333, for XMRig and other Monero miners) and `p2p` (port 37889, the P2Pool sidechain peer port). The p2p port is pinned to 37889 so it stays stable across the mini/main toggle rather than shifting to the `--mini` default of 37888.
-- **Requires an external, dedicated monerod** with unrestricted RPC and ZMQ enabled — configured via the Configure action (host/RPC port/ZMQ port). The StartOS Monero service only exposes restricted RPC and will not work.
-
-## Inspecting a running install
-
-To run a command inside the service's container (read its generated config, grep app logs), use `start-cli package attach p2pool -n p2pool-sub -- <cmd>`. Select the subcontainer by **name** with `-n` (the name passed to `SubContainer.of` in `main.ts` — here `p2pool-sub`) or by image with `-i`. Note: `-s/--subcontainer` matches the internal **Guid**, not the name, so passing a name to `-s` fails with "no matching subcontainers".
+- **P2Pool needs an external, dedicated monerod with _unrestricted_ RPC and ZMQ.** The `monerod` package here exports only the restricted RPC, which cannot submit the blocks the pool finds — don't add it as a dependency or suggest it in docs.
+- **`--p2p 0.0.0.0:37889` is pinned deliberately.** `--mini` would otherwise shift the default to 37888 and the exported interface would point at a dead port.
+- **`--no-upnp` stays.** StartOS provisions its own port mappings, and the container can't reach the router; leaving UPnP on only produces failed retries.
+- **The wallet pattern rejects subaddresses and integrated addresses** (95 chars, leading `4`) because P2Pool cannot pay to them.
+- **Everything is argv, not a config file** — every setting change restarts the daemon. That is inherent to P2Pool, not a packaging choice.
+- **Default branch is `main`, not `master`.** Its CI workflows reference `main`; leave them.
