@@ -1,4 +1,4 @@
-ARG P2POOL_VERSION=v4.17.1
+ARG P2POOL_VERSION=v4.18
 FROM debian:bookworm-slim AS builder
 
 ARG P2POOL_VERSION
