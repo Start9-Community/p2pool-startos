@@ -35,7 +35,8 @@
 
 2. **Run the Configure P2Pool action.** Set your Monero **primary** wallet address
    (it starts with `4`), your monerod **host**, and — if you changed them — the RPC
-   and ZMQ ports. Leave **Use P2Pool Mini** on if you mine under ~50 kH/s.
+   and ZMQ ports. **Use P2Pool Mini** picks the sidechain you mine on; it is on
+   by default.
 
 3. **Start the service.** P2Pool connects to monerod first, then opens its stratum
    port; the **Stratum Port** health check turns green once it is ready for miners.
@@ -59,8 +60,8 @@ For XMRig, set the pool to your Stratum interface address (port `3333`):
 ### Re-configuring
 
 Run **Configure P2Pool** again any time to change your wallet, switch between the
-Mini and main sidechain, or adjust the monerod connection. Restart the service to
-apply the changes.
+Mini and main sidechain, or adjust the monerod connection. A running service
+restarts with the new settings on its own.
 
 ### Checking your shares
 

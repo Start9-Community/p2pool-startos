@@ -18,17 +18,23 @@ Freshly scaffolded? Work the
 guide page, not a file in this repo — read it, don't copy it in.
 
 Keep `README.md` (technical reference for an AI support or administering agent) and
-`instructions.md` (end-user docs) in sync with your changes.
+`instructions.md` (end-user docs) in sync with your changes. This file restates neither:
+whoever changes the package has both, so it carries only what they don't — repo mechanics,
+a change that looks right and is not, where the next thing gets added, a naming trap, a
+build or test invocation particular to this repo.
 
-**Bugs and feature requests are GitHub issues on this repo** — file them as you find them.
+**Fix a defect you spot rather than reporting it** — you have the package open and the
+context to be sure. File **a GitHub issue on this repo** only when the call isn't yours to
+make: you can't pin the cause down, two defensible fixes exist, or it's too large to ride on
+the work in hand. An open issue is a report, not a queue — implement one when you're asked
+to or when it's labelled `Approved`, then close it with `Closes #<n>`.
+
 Don't record work in the repo instead: no `TODO.md`, no `NOTES.md`, no `PLAN.md`. What you
 verified, tried, and decided belongs in the commit message and the PR body.
 
 ## This repo
 
-- **P2Pool needs an external, dedicated monerod with _unrestricted_ RPC and ZMQ.** The `monerod` package here exports only the restricted RPC, which cannot submit the blocks the pool finds — don't add it as a dependency or suggest it in docs.
-- **`--p2p 0.0.0.0:37889` is pinned deliberately.** `--mini` would otherwise shift the default to 37888 and the exported interface would point at a dead port.
-- **`--no-upnp` stays.** StartOS provisions its own port mappings, and the container can't reach the router; leaving UPnP on only produces failed retries.
-- **The wallet pattern rejects subaddresses and integrated addresses** (95 chars, leading `4`) because P2Pool cannot pay to them.
-- **Everything is argv, not a config file** — every setting change restarts the daemon. That is inherent to P2Pool, not a packaging choice.
-- **Default branch is `main`, not `master`.** Its CI workflows reference `main`; leave them.
+- **Don't add the `monerod` package as a dependency or suggest it in docs** — it exports only the restricted RPC, which cannot submit the blocks the pool finds.
+- **Keep `--p2p 0.0.0.0:37889` pinned** — `--mini` would otherwise move the listener to 37888, off the exported interface's port.
+- **Keep `--no-upnp`** — StartOS provisions port mappings itself and the container can't reach the router, so UPnP only produces failed retries.
+- **The default branch is `main`, not `master`** — the CI workflows' `branches:` name it; leave them.
