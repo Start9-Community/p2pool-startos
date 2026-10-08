@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="icon.png" alt="P2Pool Logo" width="21%">
+  <img src="icon.svg" alt="P2Pool Logo" width="21%">
 </p>
 
 # P2Pool on StartOS
@@ -128,8 +128,8 @@ Sets everything: the payout address, the sidechain choice, the Monero node's hos
 - **What it changes:** all six fields in the configuration.
 - **Cost:** the service restarts, since the values are command-line arguments.
 - **Repeat safety:** idempotent, pre-filled with the current values.
-- **The address must be a primary Monero address** — 95 characters beginning with `4`. Subaddresses and integrated addresses are rejected by the form, because P2Pool cannot pay to them.
-- **The mini sidechain is on by default**, which suits smaller miners: it has a lower share difficulty, so a modest hashrate still earns shares regularly. Larger operations should turn it off and join the main chain.
+- **The address must be a primary Monero address** — 95 characters beginning with `4`; the form rejects subaddresses and integrated addresses. P2Pool's `--wallet` takes the main address only. Upstream can also mine to a subaddress of that wallet through a separate `--subaddress` option ([command-line docs](https://github.com/SChernykh/p2pool/blob/master/docs/COMMAND_LINE.MD)), but this package does not offer it.
+- **The mini sidechain is on by default.**
 
 **Switching between mini and main is a different sidechain**, not a setting: your position in the payout window does not carry across, and the node resyncs.
 
@@ -169,7 +169,7 @@ A restored instance comes back configured, resyncs the sidechain, and resumes.
 
 1. **It needs a separate Monero node with unrestricted RPC and ZMQ.** The Monero package on StartOS cannot serve this.
 2. **The service refuses to start unconfigured**, by design.
-3. **Primary addresses only** — no subaddresses, no integrated addresses.
+3. **Primary addresses only** — upstream's `--subaddress` option is not offered, and integrated addresses are rejected.
 4. **Switching sidechains resyncs** and does not carry your share position over.
 5. **The stratum port is unauthenticated**, so anyone who can reach it can mine toward your address.
 6. **All configuration is command-line**, so every change is a restart.

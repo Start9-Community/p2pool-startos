@@ -24,7 +24,7 @@ export const inputSpec = InputSpec.of({
   miniSidechain: Value.toggle({
     name: i18n('Use P2Pool Mini'),
     description: i18n(
-      'P2Pool Mini has a lower share difficulty and is recommended for miners with less than ~50 kH/s hashrate. Disable to join the main P2Pool chain.',
+      "- On: mine on the P2Pool Mini sidechain.\n- Off: mine on the main P2Pool sidechain.\nThey are separate pools, and shares earned on one do not count on the other. mini.p2pool.observer and p2pool.observer show each one's current statistics.",
     ),
     default: true,
   }),
@@ -54,7 +54,9 @@ export const inputSpec = InputSpec.of({
   }),
   monerodZmqPort: Value.number({
     name: i18n('Monero ZMQ Port'),
-    description: i18n('ZMQ port of your Monero node. Default: 18083.'),
+    description: i18n(
+      "The port your Monero node publishes ZMQ notifications on: the port in monerod's --zmq-pub option, which P2Pool requires. Not the ZMQ RPC port.",
+    ),
     required: false,
     default: 18083,
     min: 1,
@@ -66,7 +68,7 @@ export const inputSpec = InputSpec.of({
   logLevel: Value.number({
     name: i18n('Log Level'),
     description: i18n(
-      'P2Pool log verbosity (0 = silent, 6 = maximum). Default: 3.',
+      'How much P2Pool writes to the service logs, from 0 (least) to 6 (most). The default of 3 is already verbose: lower it to quiet the logs, or raise it while troubleshooting.',
     ),
     required: false,
     default: 3,
@@ -125,9 +127,7 @@ export const configure = sdk.Action.withInput(
     return {
       version: '1',
       title: i18n('Configuration Saved'),
-      message: i18n(
-        'P2Pool configuration saved. Restart the service to apply changes.',
-      ),
+      message: i18n('P2Pool configuration saved.'),
       result: null,
     }
   },
