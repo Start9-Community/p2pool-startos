@@ -1,13 +1,13 @@
 import { VersionInfo, IMPOSSIBLE } from '@start9labs/start-sdk'
 
 export const current = VersionInfo.of({
-  version: '4.18.1:1',
+  version: '4.18.1:2',
   releaseNotes: {
-    en_US: `- The Use P2Pool Mini, Monero ZMQ Port and Log Level descriptions in Configure P2Pool explain what each choice does and which port to enter.`,
-    es_ES: `- Las descripciones de Usar P2Pool Mini, Puerto ZMQ de Monero y Nivel de registro en Configurar P2Pool explican qué hace cada opción y qué puerto introducir.`,
-    de_DE: `- Die Beschreibungen von „P2Pool Mini verwenden“, Monero-ZMQ-Port und Protokollstufe in „P2Pool konfigurieren“ erklären, was jede Wahl bewirkt und welcher Port einzutragen ist.`,
-    pl_PL: `- Opisy pól Użyj P2Pool Mini, Port ZMQ Monero i Poziom logowania w akcji Skonfiguruj P2Pool wyjaśniają, co daje każdy wybór i jaki port wpisać.`,
-    fr_FR: `- Les descriptions de Utiliser P2Pool Mini, Port ZMQ Monero et Niveau de journalisation dans Configurer P2Pool expliquent ce que fait chaque choix et quel port saisir.`,
+    en_US: `- Miners and peers can now connect to P2Pool over the server's IPv6 addresses.`,
+    es_ES: `- Los mineros y los pares ahora pueden conectarse a P2Pool a través de las direcciones IPv6 del servidor.`,
+    de_DE: `- Miner und Peers können sich jetzt über die IPv6-Adressen des Servers mit P2Pool verbinden.`,
+    pl_PL: `- Górnicy i peery mogą teraz łączyć się z P2Pool przez adresy IPv6 serwera.`,
+    fr_FR: `- Les mineurs et les pairs peuvent désormais se connecter à P2Pool via les adresses IPv6 du serveur.`,
   },
   migrations: {
     up: async () => {},
