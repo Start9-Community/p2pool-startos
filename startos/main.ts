@@ -46,11 +46,11 @@ export const main = sdk.setupMain(async ({ effects }) => {
     '--wallet',
     walletAddress,
     '--stratum',
-    `0.0.0.0:${stratumPort}`,
+    `[::]:${stratumPort},0.0.0.0:${stratumPort}`,
     // Pin the p2p listen port so it matches the exported StartOS interface
     // regardless of the --mini default (which would otherwise shift it to 37888).
     '--p2p',
-    `0.0.0.0:${p2pPort}`,
+    `[::]:${p2pPort},0.0.0.0:${p2pPort}`,
     '--loglevel',
     String(logLevel),
     // Persist cache/log/peer data on the mounted /data volume.
