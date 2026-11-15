@@ -40,6 +40,7 @@ One image, built here.
 | Property      | Value                                      |
 | ------------- | ------------------------------------------ |
 | Image         | Built from this repo's `Dockerfile`        |
+| Verification  | Signed `sha256sums.txt.asc`, pinned key    |
 | Architectures | x86_64, aarch64                            |
 | Command       | `p2pool`, with arguments composed at start |
 

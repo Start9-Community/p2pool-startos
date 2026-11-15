@@ -1,7 +1,11 @@
 ARG P2POOL_VERSION=v4.18.1
+# Primary fingerprint of the key that signs upstream's sha256sums.txt.asc. The key is
+# vendored at assets/release-keys/<fingerprint>.asc; UPDATING.md says how to change either.
+ARG P2POOL_SIGNER_FPR=1FCAAB4D3DC3310D16CBD508C47F82B54DA87ADF
 FROM debian:bookworm-slim AS builder
 
 ARG P2POOL_VERSION
+ARG P2POOL_SIGNER_FPR
 ARG TARGETARCH
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
@@ -11,6 +15,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /tmp/p2pool
+
+COPY assets/release-keys/ /tmp/verify/keys/
+COPY verify/verify-p2pool-release.sh /tmp/verify/
 
 RUN set -eux; \
     case "${TARGETARCH}" in \
@@ -22,9 +29,8 @@ RUN set -eux; \
     BASE_URL="https://github.com/SChernykh/p2pool/releases/download/${P2POOL_VERSION}"; \
     wget -q "${BASE_URL}/${ASSET}" -O "${ASSET}"; \
     wget -q "${BASE_URL}/sha256sums.txt.asc" -O sha256sums.txt.asc; \
-    EXPECTED="$(grep -F -A2 "Name: ${ASSET}" sha256sums.txt.asc | awk '/SHA256:/ {print $2; exit}')"; \
-    test -n "${EXPECTED}"; \
-    echo "${EXPECTED}  ${ASSET}" | sha256sum -c -; \
+    sh /tmp/verify/verify-p2pool-release.sh "/tmp/verify/keys/${P2POOL_SIGNER_FPR}.asc" \
+      "${P2POOL_SIGNER_FPR}" sha256sums.txt.asc "${ASSET}"; \
     tar -xzf "${ASSET}"; \
     find . -name 'p2pool' -type f -exec cp {} /usr/local/bin/p2pool \;; \
     chmod +x /usr/local/bin/p2pool
