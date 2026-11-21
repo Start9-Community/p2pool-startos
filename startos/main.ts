@@ -3,9 +3,17 @@ import { storeJson } from './fileModels/store.json'
 import { i18n } from './i18n'
 import { sdk } from './sdk'
 import { mount, p2pPort, stratumPort } from './utils'
+import { rm } from 'node:fs/promises'
 
 export const main = sdk.setupMain(async ({ effects }) => {
   console.info(i18n('Starting P2Pool!'))
+
+  // A restore of an older backup copies p2pool.log back into /data. The SDK
+  // restores the backup's data version first, so the update migration normally
+  // re-runs and deletes it; this covers the paths it does not see (a backup with
+  // no recorded data version, a hand-placed copy, a sideloaded 4.18.1:4). With
+  // --no-log-file the daemon never recreates it.
+  await rm(sdk.volumes.main.subpath('p2pool.log'), { force: true })
 
   const store = await storeJson.read().const(effects)
 

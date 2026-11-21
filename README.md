@@ -54,7 +54,7 @@ These arguments are set by the package rather than the user:
 
 - **UPnP is disabled.** StartOS provisions its own port mappings, and a container cannot reach the router anyway, so leaving it on would just produce failed retries in the log.
 - **The peer port is pinned.** Left alone, switching to the mini sidechain would shift the default peer port, and the exported interface would then point at a port nothing was listening on.
-- **File logging is disabled.** StartOS captures the console output in the service's Logs; `--no-log-file` prevents an unbounded duplicate in `/data/p2pool.log`. Updating to 4.18.1:4 deletes the one earlier versions wrote.
+- **File logging is disabled.** StartOS captures the console output in the service's Logs; `--no-log-file` prevents an unbounded duplicate in `/data/p2pool.log`. Updating to 4.18.1:4 deletes the one earlier versions wrote, and the service removes it again at every start, which covers a copy that reaches `/data` without a version transition (a restore of an older backup re-runs the migration, because the SDK restores the data version first).
 
 ## Volume and Data Layout
 
@@ -64,10 +64,10 @@ One volume.
 | ------ | ----------- | -------------------------------- |
 | `main` | `/data`     | The sidechain cache and settings |
 
-| Path                    | Written by | Holds                                           |
-| ----------------------- | ---------- | ----------------------------------------------- |
-| `store.json`            | The action | The wallet address and node connection          |
-| _cache, peer list_      | P2Pool     | Sidechain state it can rebuild from the network |
+| Path               | Written by | Holds                                           |
+| ------------------ | ---------- | ----------------------------------------------- |
+| `store.json`       | The action | The wallet address and node connection          |
+| _cache, peer list_ | P2Pool     | Sidechain state it can rebuild from the network |
 
 **Nothing here is irreplaceable except the settings.** Your shares and your payouts live on the P2Pool sidechain and in the Monero blockchain, not on this volume — losing it costs a resync of the sidechain, not money.
 
