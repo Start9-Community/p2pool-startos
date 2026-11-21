@@ -37,5 +37,6 @@ verified, tried, and decided belongs in the commit message and the PR body.
 - **Don't add the `monerod` package as a dependency or suggest it in docs** — it exports only the restricted RPC, which cannot submit the blocks the pool finds.
 - **Keep `--p2p 0.0.0.0:37889` pinned** — `--mini` would otherwise move the listener to 37888, off the exported interface's port.
 - **Keep `--no-upnp`** — StartOS provisions port mappings itself and the container can't reach the router, so UPnP only produces failed retries.
+- **Keep `--no-log-file`** — StartOS captures the console log already; the file copy in `/data` duplicated it and grew to gigabytes, and backups exclude it along with `p2pool.cache`.
 - **Never take a new P2Pool signing fingerprint from the release page** — confirm it against monero-project/gitian.sigs or p2pool.io (UPDATING.md), then change `ARG P2POOL_SIGNER_FPR` and the vendored key in `assets/release-keys/` together. `verify/test.sh` (Docker + network) runs the tamper cases against the pinned release.
 - **The default branch is `main`, not `master`** — the CI workflows' `branches:` name it; leave them.

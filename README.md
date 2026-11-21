@@ -66,7 +66,7 @@ One volume.
 | Path                    | Written by | Holds                                           |
 | ----------------------- | ---------- | ----------------------------------------------- |
 | `store.json`            | The action | The wallet address and node connection          |
-| _cache, peer list, log_ | P2Pool     | Sidechain state it can rebuild from the network |
+| _cache, peer list_      | P2Pool     | Sidechain state it can rebuild from the network |
 
 **Nothing here is irreplaceable except the settings.** Your shares and your payouts live on the P2Pool sidechain and in the Monero blockchain, not on this volume — losing it costs a resync of the sidechain, not money.
 
@@ -160,7 +160,7 @@ It does not report on shares, hashrate, or payouts. Those are in the node's own 
 
 ## Backups and Restore
 
-The `main` volume is copied wholesale — `sdk.Backups.ofVolumes('main')`. In practice the only thing worth restoring is the configuration.
+The `main` volume is backed up with `sdk.Backups.ofVolumes('main')`, minus the sidechain cache (`p2pool.cache`, rebuilt from the network) and any `p2pool.log` left by versions before 4.18.1:4 (the service now runs with `--no-log-file`; the console log StartOS keeps is the same output). In practice the only thing worth restoring is the configuration.
 
 **There is no wallet here and nothing at risk.** P2Pool never holds funds: it pays directly to the address you configure, in the coinbase of blocks the sidechain finds. The backup contains that address, not any key to it.
 
@@ -189,7 +189,7 @@ architectures:
 subcontainers:
   - p2pool-sub
 volumes:
-  main: /data # --data-dir; sidechain cache, peer list, log, plus store.json
+  main: /data # --data-dir; sidechain cache, peer list, plus store.json
 file_models:
   - store.json # wallet address, mini toggle, monerod host + rpc/zmq ports, log level
 startos_managed_env_vars: [] # p2pool is configured entirely by argv

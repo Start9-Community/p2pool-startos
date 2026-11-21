@@ -53,9 +53,12 @@ export const main = sdk.setupMain(async ({ effects }) => {
     `[::]:${p2pPort},0.0.0.0:${p2pPort}`,
     '--loglevel',
     String(logLevel),
-    // Persist cache/log/peer data on the mounted /data volume.
+    // Persist cache and peer data on the mounted /data volume.
     '--data-dir',
     '/data',
+    // StartOS already captures the console log; the file copy would only
+    // duplicate it and grow without bound.
+    '--no-log-file',
     // StartOS provisions every port mapping itself; UPnP/IGD can't reach a router
     // from inside the container, so disable it to avoid pointless retries.
     '--no-upnp',
