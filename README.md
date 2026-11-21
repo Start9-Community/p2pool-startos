@@ -50,10 +50,11 @@ One image, built here.
 
 **Everything is command-line arguments, not a config file.** P2Pool takes its whole configuration on the command line, so the package composes the arguments from the stored settings at each start — which is why every change restarts the service.
 
-Two arguments are set by the package rather than the user:
+These arguments are set by the package rather than the user:
 
 - **UPnP is disabled.** StartOS provisions its own port mappings, and a container cannot reach the router anyway, so leaving it on would just produce failed retries in the log.
 - **The peer port is pinned.** Left alone, switching to the mini sidechain would shift the default peer port, and the exported interface would then point at a port nothing was listening on.
+- **File logging is disabled.** StartOS captures the console output in the service's Logs; `--no-log-file` prevents an unbounded duplicate in `/data/p2pool.log`. Updating to 4.18.1:4 deletes the one earlier versions wrote.
 
 ## Volume and Data Layout
 
@@ -160,7 +161,7 @@ It does not report on shares, hashrate, or payouts. Those are in the node's own 
 
 ## Backups and Restore
 
-The `main` volume is backed up with `sdk.Backups.ofVolumes('main')`, minus the sidechain cache (`p2pool.cache`, rebuilt from the network) and any `p2pool.log` left by versions before 4.18.1:4 (the service now runs with `--no-log-file`; the console log StartOS keeps is the same output). In practice the only thing worth restoring is the configuration.
+The `main` volume is backed up with `sdk.Backups.ofVolumes('main')`, minus the sidechain cache (`p2pool.cache`), which P2Pool rebuilds from the network. In practice the only thing worth restoring is the configuration.
 
 **There is no wallet here and nothing at risk.** P2Pool never holds funds: it pays directly to the address you configure, in the coinbase of blocks the sidechain finds. The backup contains that address, not any key to it.
 
