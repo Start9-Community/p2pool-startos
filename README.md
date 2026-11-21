@@ -161,7 +161,7 @@ It does not report on shares, hashrate, or payouts. Those are in the node's own 
 
 ## Backups and Restore
 
-The `main` volume is backed up with `sdk.Backups.ofVolumes('main')`, minus the sidechain cache (`p2pool.cache`), which P2Pool rebuilds from the network. In practice the only thing worth restoring is the configuration.
+The `main` volume is backed up with `sdk.Backups.ofVolumes('main')`. The sidechain cache (`p2pool.cache`) is neither copied into backups nor restored; P2Pool rebuilds it from the network. A cache already on a backup target remains there but is not restored. In practice the only thing worth restoring is the configuration.
 
 **There is no wallet here and nothing at risk.** P2Pool never holds funds: it pays directly to the address you configure, in the coinbase of blocks the sidechain finds. The backup contains that address, not any key to it.
 
