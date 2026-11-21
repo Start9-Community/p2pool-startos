@@ -1,6 +1,5 @@
 import { VersionInfo, IMPOSSIBLE } from '@start9labs/start-sdk'
-import { rm } from 'node:fs/promises'
-import { sdk } from '../sdk'
+import { removeLegacyLog } from '../utils'
 
 export const current = VersionInfo.of({
   version: '4.18.1:4',
@@ -13,7 +12,7 @@ export const current = VersionInfo.of({
   },
   migrations: {
     up: async () => {
-      await rm(sdk.volumes.main.subpath('p2pool.log'), { force: true })
+      await removeLegacyLog()
     },
     down: IMPOSSIBLE,
   },

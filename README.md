@@ -54,7 +54,7 @@ These arguments are set by the package rather than the user:
 
 - **UPnP is disabled.** StartOS provisions its own port mappings, and a container cannot reach the router anyway, so leaving it on would just produce failed retries in the log.
 - **The peer port is pinned.** Left alone, switching to the mini sidechain would shift the default peer port, and the exported interface would then point at a port nothing was listening on.
-- **File logging is disabled.** StartOS captures the console output in the service's Logs; `--no-log-file` prevents an unbounded duplicate in `/data/p2pool.log`. Updating to 4.18.1:4 deletes the one earlier versions wrote, and the service removes it again at every start, which covers a copy that reaches `/data` without a version transition (a restore of an older backup re-runs the migration, because the SDK restores the data version first).
+- **File logging is disabled.** StartOS captures the console output in the service's Logs; `--no-log-file` prevents an unbounded duplicate in `/data/p2pool.log`. The package removes existing logs on upgrade and every service start, including copies introduced without a version transition.
 
 ## Volume and Data Layout
 
@@ -161,7 +161,9 @@ It does not report on shares, hashrate, or payouts. Those are in the node's own 
 
 ## Backups and Restore
 
-The `main` volume is backed up with `sdk.Backups.ofVolumes('main')`. The sidechain cache (`p2pool.cache`) is neither copied into backups nor restored; P2Pool rebuilds it from the network. A cache already on a backup target remains there but is not restored. In practice the only thing worth restoring is the configuration.
+This version backs up the `main` volume with `sdk.Backups.ofVolumes('main')`. The sidechain cache (`p2pool.cache`) is neither copied into backups nor restored; P2Pool rebuilds it from the network. A cache already on a backup target remains there but is not restored. In practice the only thing worth restoring is the configuration.
+
+Restoring a backup reinstalls the package version saved with it. An older release's backup can therefore restore the cache and resume writing `p2pool.log`; the log cleanup and cache exclusion apply after updating the restored package.
 
 **There is no wallet here and nothing at risk.** P2Pool never holds funds: it pays directly to the address you configure, in the coinbase of blocks the sidechain finds. The backup contains that address, not any key to it.
 

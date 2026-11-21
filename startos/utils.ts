@@ -1,3 +1,4 @@
+import { rm } from 'node:fs/promises'
 import { sdk } from './sdk'
 
 export const stratumPort = 3333
@@ -11,3 +12,7 @@ export const mount = sdk.Mounts.of().mountVolume({
   mountpoint: '/data',
   readonly: false,
 })
+
+export function removeLegacyLog() {
+  return rm(sdk.volumes.main.subpath('p2pool.log'), { force: true })
+}
