@@ -1,16 +1,19 @@
 import { VersionInfo, IMPOSSIBLE } from '@start9labs/start-sdk'
+import { removeLegacyLog } from '../utils'
 
 export const current = VersionInfo.of({
-  version: '4.18.1:3',
+  version: '4.18.1:4',
   releaseNotes: {
-    en_US: `- The build now verifies the GPG signature on P2Pool's release checksums against the P2Pool project's signing key before trusting them. No runtime changes.`,
-    es_ES: `- La compilación ahora verifica la firma GPG de las sumas de comprobación de la versión de P2Pool con la clave de firma del proyecto antes de confiar en ellas. Sin cambios en tiempo de ejecución.`,
-    de_DE: `- Der Build prüft jetzt die GPG-Signatur der P2Pool-Release-Prüfsummen gegen den Signaturschlüssel des Projekts, bevor er ihnen vertraut. Keine Änderungen zur Laufzeit.`,
-    pl_PL: `- Kompilacja sprawdza teraz podpis GPG sum kontrolnych wydania P2Pool kluczem podpisującym projektu, zanim im zaufa. Bez zmian w czasie działania.`,
-    fr_FR: `- La construction vérifie désormais la signature GPG des sommes de contrôle de la version de P2Pool avec la clé de signature du projet avant de s'y fier. Aucun changement à l'exécution.`,
+    en_US: `- P2Pool no longer writes its own log file, and this update deletes the one earlier versions wrote, which could grow to several gigabytes; the console log StartOS keeps is the same output. Backups leave out the sidechain cache, which is rebuilt from the network.`,
+    es_ES: `- P2Pool ya no escribe su propio archivo de registro, y esta actualización elimina el que escribían las versiones anteriores, que podía crecer hasta varios gigabytes; el registro de consola que guarda StartOS es la misma salida. Las copias de seguridad omiten la caché de la sidechain, que se reconstruye desde la red.`,
+    de_DE: `- P2Pool schreibt keine eigene Logdatei mehr, und dieses Update löscht die Logdatei früherer Versionen, die auf mehrere Gigabyte anwachsen konnte; das Konsolenprotokoll, das StartOS führt, ist dieselbe Ausgabe. Backups lassen den Sidechain-Cache aus, der aus dem Netzwerk neu aufgebaut wird.`,
+    pl_PL: `- P2Pool nie zapisuje już własnego pliku dziennika, a ta aktualizacja usuwa plik zapisywany przez wcześniejsze wersje, który mógł urosnąć do kilku gigabajtów; dziennik konsoli przechowywany przez StartOS to ta sama zawartość. Kopie zapasowe pomijają pamięć podręczną sidechaina, odbudowywaną z sieci.`,
+    fr_FR: `- P2Pool n'écrit plus son propre fichier journal, et cette mise à jour supprime celui qu'écrivaient les versions précédentes, qui pouvait atteindre plusieurs gigaoctets ; le journal de console conservé par StartOS est la même sortie. Les sauvegardes laissent de côté le cache de la sidechain, reconstruit depuis le réseau.`,
   },
   migrations: {
-    up: async () => {},
+    up: async () => {
+      await removeLegacyLog()
+    },
     down: IMPOSSIBLE,
   },
 })

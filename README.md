@@ -50,10 +50,11 @@ One image, built here.
 
 **Everything is command-line arguments, not a config file.** P2Pool takes its whole configuration on the command line, so the package composes the arguments from the stored settings at each start — which is why every change restarts the service.
 
-Two arguments are set by the package rather than the user:
+These arguments are set by the package rather than the user:
 
 - **UPnP is disabled.** StartOS provisions its own port mappings, and a container cannot reach the router anyway, so leaving it on would just produce failed retries in the log.
 - **The peer port is pinned.** Left alone, switching to the mini sidechain would shift the default peer port, and the exported interface would then point at a port nothing was listening on.
+- **File logging is disabled.** StartOS captures the console output in the service's Logs; `--no-log-file` prevents an unbounded duplicate in `/data/p2pool.log`. The package removes existing logs on upgrade and every service start, including copies introduced without a version transition.
 
 ## Volume and Data Layout
 
@@ -63,10 +64,10 @@ One volume.
 | ------ | ----------- | -------------------------------- |
 | `main` | `/data`     | The sidechain cache and settings |
 
-| Path                    | Written by | Holds                                           |
-| ----------------------- | ---------- | ----------------------------------------------- |
-| `store.json`            | The action | The wallet address and node connection          |
-| _cache, peer list, log_ | P2Pool     | Sidechain state it can rebuild from the network |
+| Path               | Written by | Holds                                           |
+| ------------------ | ---------- | ----------------------------------------------- |
+| `store.json`       | The action | The wallet address and node connection          |
+| _cache, peer list_ | P2Pool     | Sidechain state it can rebuild from the network |
 
 **Nothing here is irreplaceable except the settings.** Your shares and your payouts live on the P2Pool sidechain and in the Monero blockchain, not on this volume — losing it costs a resync of the sidechain, not money.
 
@@ -160,7 +161,9 @@ It does not report on shares, hashrate, or payouts. Those are in the node's own 
 
 ## Backups and Restore
 
-The `main` volume is copied wholesale — `sdk.Backups.ofVolumes('main')`. In practice the only thing worth restoring is the configuration.
+This version backs up the `main` volume with `sdk.Backups.ofVolumes('main')`. The sidechain cache (`p2pool.cache`) is neither copied into backups nor restored; P2Pool rebuilds it from the network. A cache already on a backup target remains there but is not restored. In practice the only thing worth restoring is the configuration.
+
+Restoring a backup reinstalls the package version saved with it. An older release's backup can therefore restore the cache and resume writing `p2pool.log`; the log cleanup and cache exclusion apply after updating the restored package.
 
 **There is no wallet here and nothing at risk.** P2Pool never holds funds: it pays directly to the address you configure, in the coinbase of blocks the sidechain finds. The backup contains that address, not any key to it.
 
@@ -189,7 +192,7 @@ architectures:
 subcontainers:
   - p2pool-sub
 volumes:
-  main: /data # --data-dir; sidechain cache, peer list, log, plus store.json
+  main: /data # --data-dir; sidechain cache, peer list, plus store.json
 file_models:
   - store.json # wallet address, mini toggle, monerod host + rpc/zmq ports, log level
 startos_managed_env_vars: [] # p2pool is configured entirely by argv

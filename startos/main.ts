@@ -2,10 +2,13 @@ import { configure } from './actions/configure'
 import { storeJson } from './fileModels/store.json'
 import { i18n } from './i18n'
 import { sdk } from './sdk'
-import { mount, p2pPort, stratumPort } from './utils'
+import { mount, p2pPort, removeLegacyLog, stratumPort } from './utils'
 
 export const main = sdk.setupMain(async ({ effects }) => {
   console.info(i18n('Starting P2Pool!'))
+
+  // Reintroduced logs need cleanup without a data-version transition.
+  await removeLegacyLog()
 
   const store = await storeJson.read().const(effects)
 
@@ -53,9 +56,12 @@ export const main = sdk.setupMain(async ({ effects }) => {
     `[::]:${p2pPort},0.0.0.0:${p2pPort}`,
     '--loglevel',
     String(logLevel),
-    // Persist cache/log/peer data on the mounted /data volume.
+    // Persist cache and peer data on the mounted /data volume.
     '--data-dir',
     '/data',
+    // StartOS already captures the console log; the file copy would only
+    // duplicate it and grow without bound.
+    '--no-log-file',
     // StartOS provisions every port mapping itself; UPnP/IGD can't reach a router
     // from inside the container, so disable it to avoid pointless retries.
     '--no-upnp',
