@@ -35,3 +35,15 @@ export const long = {
     'Dirigez vos mineurs vers votre nœud StartOS et gagnez des récompenses Monero directement dans votre portefeuille, ' +
     'avec une souveraineté totale sur votre activité de minage.',
 }
+
+export const torDescription = {
+  en_US: 'Serves the .onion address other P2Pool nodes reach you at over Tor',
+  es_ES:
+    'Sirve la dirección .onion en la que otros nodos P2Pool te alcanzan a través de Tor',
+  de_DE:
+    'Stellt die .onion-Adresse bereit, unter der andere P2Pool-Nodes dich über Tor erreichen',
+  pl_PL:
+    'Obsługuje adres .onion, pod którym inne węzły P2Pool łączą się z tobą przez Tor',
+  fr_FR:
+    "Sert l'adresse .onion à laquelle les autres nœuds P2Pool vous joignent via Tor",
+}

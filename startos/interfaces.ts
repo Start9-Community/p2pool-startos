@@ -1,5 +1,11 @@
 import { sdk } from './sdk'
-import { p2pPort, stratumPort } from './utils'
+import {
+  p2pHostId,
+  p2pInterfaceId,
+  p2pOnionRelayPort,
+  p2pPort,
+  stratumPort,
+} from './utils'
 import { i18n } from './i18n'
 
 export const setInterfaces = sdk.setupInterfaces(async ({ effects }) => {
@@ -26,7 +32,8 @@ export const setInterfaces = sdk.setupInterfaces(async ({ effects }) => {
 
   // Raw TCP p2p port for the P2Pool sidechain. Forwarding it (LAN, router, or
   // Tor) lets other P2Pool nodes connect to you; outbound peering works regardless.
-  const p2pMulti = sdk.MultiHost.of(effects, 'p2p')
+  // Its onions answer on 28722 and go to the relay below (init/onionTarget.ts).
+  const p2pMulti = sdk.MultiHost.of(effects, p2pHostId)
   const p2pOrigin = await p2pMulti.bindPort(p2pPort, {
     protocol: null,
     preferredExternalPort: p2pPort,
@@ -35,7 +42,7 @@ export const setInterfaces = sdk.setupInterfaces(async ({ effects }) => {
   })
   const p2pInterface = sdk.createInterface(effects, {
     name: i18n('P2P (sidechain)'),
-    id: 'p2p',
+    id: p2pInterfaceId,
     description: i18n(
       'P2Pool peer-to-peer port for connecting to other P2Pool nodes',
     ),
@@ -47,6 +54,14 @@ export const setInterfaces = sdk.setupInterfaces(async ({ effects }) => {
     query: {},
   })
   const p2pReceipt = await p2pOrigin.export([p2pInterface])
+
+  // The onion relay. No exported interface: off the LAN, though every service on the bridge reaches it.
+  await p2pMulti.bindPort(p2pOnionRelayPort, {
+    protocol: null,
+    preferredExternalPort: p2pOnionRelayPort,
+    addSsl: null,
+    secure: { ssl: false },
+  })
 
   return [stratumReceipt, p2pReceipt]
 })

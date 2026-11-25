@@ -2,7 +2,15 @@ import { configure } from './actions/configure'
 import { storeJson } from './fileModels/store.json'
 import { i18n } from './i18n'
 import { sdk } from './sdk'
-import { mount, p2pPort, removeLegacyLog, stratumPort } from './utils'
+import {
+  mount,
+  p2pOnionPort,
+  p2pOnionRelayPort,
+  p2pPort,
+  removeLegacyLog,
+  stratumPort,
+  torOnions,
+} from './utils'
 
 export const main = sdk.setupMain(async ({ effects }) => {
   console.info(i18n('Starting P2Pool!'))
@@ -71,6 +79,16 @@ export const main = sdk.setupMain(async ({ effects }) => {
     argsList.push('--mini')
   }
 
+  // Advertised in the shares this node mines. Peers dial it on 28722 only, so
+  // pass it once Tor answers there (a Tor without Set Onion Target leaves it on
+  // 37889). It also gives loopback peers (the onion relay's) the Tor peer id.
+  const onion = (await torOnions(effects).const()).find(
+    (o) => o.port === p2pOnionPort,
+  )
+  if (onion) {
+    argsList.push('--onion-address', onion.hostname)
+  }
+
   const args = argsList as [string, ...string[]]
 
   const subcontainer = sdk.SubContainer.of(
@@ -80,22 +98,46 @@ export const main = sdk.setupMain(async ({ effects }) => {
     'p2pool-sub',
   )
 
-  return sdk.Daemons.of(effects).addDaemon('primary', {
-    subcontainer,
-    exec: {
-      command: args,
-    },
-    ready: {
-      display: i18n('Stratum Port'),
-      gracePeriod: 180000,
-      fn: () =>
-        sdk.healthCheck.checkPortListening(effects, stratumPort, {
-          successMessage: i18n('P2Pool stratum is ready for miners'),
-          errorMessage: i18n(
-            'P2Pool stratum is not yet listening. Check monerod connection and logs.',
-          ),
-        }),
-    },
-    requires: [],
-  })
+  return (
+    sdk.Daemons.of(effects)
+      .addDaemon('primary', {
+        subcontainer,
+        exec: {
+          command: args,
+        },
+        ready: {
+          display: i18n('Stratum Port'),
+          gracePeriod: 180000,
+          fn: () =>
+            sdk.healthCheck.checkPortListening(effects, stratumPort, {
+              successMessage: i18n('P2Pool stratum is ready for miners'),
+              errorMessage: i18n(
+                'P2Pool stratum is not yet listening. Check monerod connection and logs.',
+              ),
+            }),
+        },
+        requires: [],
+      })
+      // Tor peers reach p2pool from 127.0.0.1, which p2pool never bans and lets hold
+      // up to 10 connections (--in-peers-localhost) where any other address gets one.
+      .addDaemon('onion-relay', {
+        subcontainer,
+        exec: {
+          command: [
+            'socat',
+            `TCP6-LISTEN:${p2pOnionRelayPort},ipv6only=0,fork,reuseaddr`,
+            `TCP4:127.0.0.1:${p2pPort}`,
+          ],
+        },
+        ready: {
+          display: null,
+          fn: () =>
+            sdk.healthCheck.checkPortListening(effects, p2pOnionRelayPort, {
+              successMessage: 'Onion relay is listening',
+              errorMessage: 'Onion relay is not listening',
+            }),
+        },
+        requires: [],
+      })
+  )
 })

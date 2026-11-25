@@ -1,7 +1,8 @@
 {
   "name": "p2pool-startos",
   "dependencies": {
-    "@start9labs/start-sdk": "3.0.3"
+    "@start9labs/start-sdk": "4.1.0",
+    "tor-startos": "github:Start9Labs/tor-startos#next"
   },
   "overrides": {
     "@start9labs/start-sdk": "$@start9labs/start-sdk"

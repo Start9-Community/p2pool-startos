@@ -1,19 +1,21 @@
 import { VersionInfo, IMPOSSIBLE } from '@start9labs/start-sdk'
-import { removeLegacyLog } from '../utils'
 
 export const current = VersionInfo.of({
-  version: '4.18.1:4',
+  version: '4.18.1:5',
   releaseNotes: {
-    en_US: `- P2Pool no longer writes its own log file, and this update deletes the one earlier versions wrote, which could grow to several gigabytes; the console log StartOS keeps is the same output. Backups leave out the sidechain cache, which is rebuilt from the network.`,
-    es_ES: `- P2Pool ya no escribe su propio archivo de registro, y esta actualización elimina el que escribían las versiones anteriores, que podía crecer hasta varios gigabytes; el registro de consola que guarda StartOS es la misma salida. Las copias de seguridad omiten la caché de la sidechain, que se reconstruye desde la red.`,
-    de_DE: `- P2Pool schreibt keine eigene Logdatei mehr, und dieses Update löscht die Logdatei früherer Versionen, die auf mehrere Gigabyte anwachsen konnte; das Konsolenprotokoll, das StartOS führt, ist dieselbe Ausgabe. Backups lassen den Sidechain-Cache aus, der aus dem Netzwerk neu aufgebaut wird.`,
-    pl_PL: `- P2Pool nie zapisuje już własnego pliku dziennika, a ta aktualizacja usuwa plik zapisywany przez wcześniejsze wersje, który mógł urosnąć do kilku gigabajtów; dziennik konsoli przechowywany przez StartOS to ta sama zawartość. Kopie zapasowe pomijają pamięć podręczną sidechaina, odbudowywaną z sieci.`,
-    fr_FR: `- P2Pool n'écrit plus son propre fichier journal, et cette mise à jour supprime celui qu'écrivaient les versions précédentes, qui pouvait atteindre plusieurs gigaoctets ; le journal de console conservé par StartOS est la même sortie. Les sauvegardes laissent de côté le cache de la sidechain, reconstruit depuis le réseau.`,
+    en_US:
+      'Other P2Pool nodes can now reach yours over Tor: add a new .onion address to the P2P interface, and P2Pool announces it in the shares you mine. Each Tor peer gets a connection of its own. The address is published together with your wallet address, so create a new one rather than reusing one you have. Requires Tor 0.4.9.17:4 or later.',
+    es_ES:
+      'Otros nodos P2Pool ya pueden alcanzar el tuyo a través de Tor: añade una nueva dirección .onion a la interfaz P2P, y P2Pool la anuncia en los shares que minas. Cada par de Tor obtiene su propia conexión. La dirección se publica junto con tu dirección de monedero, así que crea una nueva en lugar de reutilizar una que ya tengas. Requiere Tor 0.4.9.17:4 o posterior.',
+    de_DE:
+      'Andere P2Pool-Nodes können deinen Node jetzt über Tor erreichen: Füge der P2P-Schnittstelle eine neue .onion-Adresse hinzu, und P2Pool kündigt sie in den Shares an, die du minst. Jeder Tor-Peer erhält eine eigene Verbindung. Die Adresse wird zusammen mit deiner Wallet-Adresse veröffentlicht, also erstelle eine neue, statt eine vorhandene wiederzuverwenden. Erfordert Tor 0.4.9.17:4 oder neuer.',
+    pl_PL:
+      'Inne węzły P2Pool mogą teraz łączyć się z twoim przez Tor: dodaj nowy adres .onion do interfejsu P2P, a P2Pool ogłosi go w wydobywanych przez ciebie share’ach. Każdy węzeł z Tora dostaje własne połączenie. Adres jest publikowany razem z adresem twojego portfela, więc utwórz nowy zamiast używać istniejącego. Wymaga Tor 0.4.9.17:4 lub nowszego.',
+    fr_FR:
+      "D'autres nœuds P2Pool peuvent désormais joindre le vôtre via Tor : ajoutez une nouvelle adresse .onion à l'interface P2P, et P2Pool l'annonce dans les shares que vous minez. Chaque pair Tor obtient sa propre connexion. L'adresse est publiée avec votre adresse de portefeuille : créez-en une nouvelle plutôt que de réutiliser une adresse existante. Nécessite Tor 0.4.9.17:4 ou une version ultérieure.",
   },
   migrations: {
-    up: async () => {
-      await removeLegacyLog()
-    },
+    up: async () => {},
     down: IMPOSSIBLE,
   },
 })
