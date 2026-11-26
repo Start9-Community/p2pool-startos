@@ -44,9 +44,9 @@ One image, built here.
 | Architectures | x86_64, aarch64                            |
 | Command       | `p2pool`, with arguments composed at start |
 
-| Subcontainer | Purpose                                  |
-| ------------ | ---------------------------------------- |
-| `p2pool-sub` | The only daemon — the one to `attach` to |
+| Subcontainer | Purpose                                                      |
+| ------------ | ------------------------------------------------------------ |
+| `p2pool-sub` | Both daemons: `primary` (p2pool) and `onion-relay` (`socat`) |
 
 **Everything is command-line arguments, not a config file.** P2Pool takes its whole configuration on the command line, so the package composes the arguments from the stored settings at each start — which is why every change restarts the service.
 
@@ -54,6 +54,7 @@ These arguments are set by the package rather than the user:
 
 - **UPnP is disabled.** StartOS provisions its own port mappings, and a container cannot reach the router anyway, so leaving it on would just produce failed retries in the log.
 - **The peer port is pinned.** Left alone, switching to the mini sidechain would shift the default peer port, and the exported interface would then point at a port nothing was listening on.
+- **The onion address is fed in.** When Tor serves a .onion on the **P2P** interface on port 28722, it is passed as `--onion-address` (the first, sorted, if there are several), and a change to it restarts the service. See [Inbound Tor](#inbound-tor).
 - **File logging is disabled.** StartOS captures the console output in the service's Logs; `--no-log-file` prevents an unbounded duplicate in `/data/p2pool.log`. The package removes existing logs on upgrade and every service start, including copies introduced without a version transition.
 
 ## Volume and Data Layout
@@ -85,7 +86,7 @@ The model is read reactively, so any change restarts the node with new arguments
 
 ## Dependencies
 
-**None declared — but P2Pool cannot run without a Monero node**, and it has to be one you provide.
+**Tor is the only declared dependency, and it is optional** — `running`, version `>=0.4.9.17:4`, enabled while Tor serves a .onion on the P2P interface. That release is the first with Set Onion Target, which the [inbound Tor](#inbound-tor) path needs; an older Tor leaves the onion on 37889 and forwards its peers to the binding itself. **P2Pool still cannot run without a Monero node**, and it has to be one you provide.
 
 | Needs                       | Where it comes from                 |
 | --------------------------- | ----------------------------------- |
@@ -98,16 +99,29 @@ That node must have ZMQ enabled as well, since P2Pool watches it for new blocks 
 
 ## Network Access and Interfaces
 
-Two interfaces, both raw TCP with the external port preserved.
+Two interfaces, both raw TCP with the external port preserved, and one unexported binding.
 
-| Interface | Id        | Type | Port  | Description                       |
-| --------- | --------- | ---- | ----- | --------------------------------- |
-| Stratum   | `stratum` | api  | 3333  | What miners connect to            |
-| P2P       | `p2p`     | p2p  | 37889 | The P2Pool sidechain peer network |
+| Interface | Id        | Type | Port  | Description                                                                |
+| --------- | --------- | ---- | ----- | -------------------------------------------------------------------------- |
+| Stratum   | `stratum` | api  | 3333  | What miners connect to                                                     |
+| P2P       | `p2p`     | p2p  | 37889 | The P2Pool sidechain peer network; its .onion on 28722                     |
+| _(none)_  | —         | —    | 28723 | The onion relay, on the `p2p` host; off the LAN, reachable over the bridge |
 
 **The stratum port has no authentication.** That is how stratum works, and the consequence here is benign but worth being clear about: anyone who can reach it contributes hashrate toward _your_ configured wallet address. It is not a way for someone else to be paid, but it is a way for someone else to load your node.
 
 **Forwarding the peer port is optional but useful.** Outbound peering works without it; accepting inbound connections improves how well your node stays in sync with the sidechain.
+
+### Inbound Tor
+
+**P2Pool peers dial every advertised .onion on port 28722**, whatever the sidechain (upstream's `DEFAULT_P2P_PORT_ONION`; only its own seed onions are dialled on the sidechain port). Tor would publish an onion on its binding's external port, 37889, where no peer looks.
+
+**An init step moves the P2P interface's onions to 28722 and sends them through a relay.** It calls `tor-startos`'s `setupOnionTarget` for the 37889 binding with `externalPort: 28722` and `target: 28723`, and repeats the call whenever Tor is installed or updated. The package clears the target on uninstall, and Tor uses it only while it is bound, so a version without the relay gets the old forward back. Tor then answers each of the binding's onions on 28722, moving existing ones there with their hostnames, and forwards them to the unexported port 28723. The `onion-relay` daemon (`socat`, dual-stack) passes each connection to `127.0.0.1:37889`. LAN and clearnet addresses stay on 37889, unchanged.
+
+**Tor peers reach p2pool from loopback.** Otherwise every onion peer would arrive from the bridge address `10.0.3.1`, and p2pool allows one connection per non-loopback IP and bans by IP. From loopback, p2pool never bans and accepts up to 10 connections (`--in-peers-localhost`, upstream default), and with `--onion-address` set it answers them with its separate Tor peer id. Like any unexported binding, 28723 sits on the LXC bridge, so another service on the server could also reach it and be taken for a Tor peer.
+
+**The onion is advertised only once Tor answers it on 28722.** P2Pool puts `--onion-address` in each share it mines, and peers learn it from there, so an onion is announced only once the node mines a share. A Tor older than `0.4.9.17:4` cannot move the onion or set the target, so it stays on 37889 and the package leaves `--onion-address` unset. Announcing the onion also ties it to the payout wallet in public sidechain data, which is why upstream says to use an onion created for mining.
+
+**Outbound connections stay on clearnet.** Upstream's `--socks5` would carry P2Pool's outbound onion peering, but it also routes its RPC and ZMQ connections to monerod through the proxy, which a LAN monerod cannot be reached through; the package does not set it, so this node never dials onion peers itself.
 
 ## Installation and First-Run Flow
 
@@ -147,11 +161,13 @@ One, raised by the service itself.
 
 ## Health Checks
 
-One check, on the only daemon.
+One displayed check, on the `primary` daemon.
 
 | Check     | Displayed as   | Method                 | Grace |
 | --------- | -------------- | ---------------------- | ----- |
 | `primary` | "Stratum Port" | Port 3333 is listening | 180s  |
+
+The `onion-relay` daemon's readiness (port 28723 listening) is not displayed.
 
 **A green check means miners can connect** — which is a real statement about P2Pool, because the stratum port only opens once the node has a working connection to Monero and enough of the sidechain to hand out work.
 
@@ -178,6 +194,7 @@ A restored instance comes back configured, resyncs the sidechain, and resumes.
 5. **The stratum port is unauthenticated**, so anyone who can reach it can mine toward your address.
 6. **All configuration is command-line**, so every change is a restart.
 7. **Mainnet only.**
+8. **Tor is inbound only**, and only the first .onion on **P2P** is announced, once a share is mined. P2Pool's own connections go over clearnet; see [Inbound Tor](#inbound-tor).
 
 ---
 
@@ -196,14 +213,18 @@ volumes:
 file_models:
   - store.json # wallet address, mini toggle, monerod host + rpc/zmq ports, log level
 startos_managed_env_vars: [] # p2pool is configured entirely by argv
-dependencies: [] # but requires an EXTERNAL monerod with unrestricted RPC + ZMQ
+dependencies:
+  - tor # optional, >=0.4.9.17:4, running; enabled while a P2P interface has a .onion
+# and an EXTERNAL monerod with unrestricted RPC + ZMQ (not a declared dependency)
 interfaces:
   stratum: { type: api, port: 3333 } # raw TCP, unauthenticated by design
-  p2p: { type: p2p, port: 37889 } # pinned so --mini doesn't shift it to 37888
+  p2p: { type: p2p, port: 37889 } # pinned so --mini doesn't shift it to 37888; its .onion answers on 28722
+  # 28723: unexported onion relay (socat -> 127.0.0.1:37889), Tor's target for the p2p onions
 actions:
   - configure
 tasks:
   - { action: configure, severity: important } # raised from main.ts, not at install
 health_checks:
   - primary # displayed "Stratum Port"; opens only once monerod is reachable, 180s grace
+  - onion-relay # not displayed; port 28723 listening
 ```

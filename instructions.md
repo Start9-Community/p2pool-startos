@@ -9,6 +9,7 @@
 ## Documentation
 
 - [P2Pool README](https://github.com/SChernykh/p2pool/blob/master/README.md) — the upstream setup and usage reference, including the full list of monerod requirements.
+- [Running P2Pool with Tor](https://github.com/SChernykh/p2pool/blob/master/docs/TOR.MD) — upstream's Tor guide, including the privacy caveat for onion addresses.
 
 ## What you get on StartOS
 
@@ -56,6 +57,26 @@ For XMRig, set the pool to your Stratum interface address (port `3333`):
 ```json
 "pool": { "url": "your-startos-box.local:3333", "user": "", "pass": "" }
 ```
+
+### Letting other nodes reach you over Tor
+
+Other P2Pool nodes can connect to yours through a .onion address. This needs the
+Tor service, version 0.4.9.17:4 or later.
+
+1. Open the **P2P** interface and add a **new** .onion address. P2Pool restarts
+   and starts announcing it.
+2. Leave it running. P2Pool announces the address inside the shares it mines, so
+   other nodes learn it only after your node has mined a share.
+
+**Your .onion address is published together with your wallet address**, in the
+shares anyone can read on the sidechain. Create a new address for P2Pool rather
+than reusing one you have given out elsewhere.
+
+The .onion address answers on port 28722, the port other P2Pool nodes use for
+Tor, rather than the P2P interface's usual port.
+
+This is for nodes reaching you. P2Pool's own connections to other nodes, and to
+your Monero node, still go over your regular network.
 
 ### Re-configuring
 
