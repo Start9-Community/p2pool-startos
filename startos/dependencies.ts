@@ -1,6 +1,9 @@
-import { torDescription } from './manifest/i18n'
+import { autoconfig } from 'monerod-startos/startos/actions/config/autoconfig'
+import { storeJson } from './fileModels/store.json'
+import { i18n } from './i18n'
+import { monerodDescription, torDescription } from './manifest/i18n'
 import { sdk } from './sdk'
-import { torOnions } from './utils'
+import { monerodSource, torOnions } from './utils'
 
 const tor = sdk.Dependency.optional('tor', {
   description: torDescription,
@@ -17,4 +20,29 @@ const tor = sdk.Dependency.optional('tor', {
   enabled: async ({ effects }) => (await torOnions(effects).const()).length > 0,
 })
 
-export const dependencies = sdk.Dependencies.of().addDependency(tor)
+const monerod = sdk.Dependency.optional('monerod', {
+  description: monerodDescription,
+  metadata: {
+    title: 'Monero',
+    icon: 'https://raw.githubusercontent.com/Start9-Community/monerod-startos/c05c4f08f915b61d282b7d11258fe12e89e26fc8/icon.svg',
+  },
+  kind: 'running',
+  // 0.18.5.4:7 is the first Monero that serves its unrestricted RPC to other services, with a published login.
+  versionRange: '>=0.18.5.4:7',
+  healthChecks: ['monerod', 'unrestricted-rpc'],
+  enabled: async ({ effects }) => {
+    const store = await storeJson.read().const(effects)
+    return !!store && monerodSource(store) === 'startos'
+  },
+}).withInit(async (effects) => {
+  const needs = { zmq: true }
+  await sdk.action.createTask(effects, 'monerod', autoconfig, 'critical', {
+    input: { kind: 'partial', accept: [needs], set: needs },
+    when: { condition: 'input-not-matches', once: false },
+    reason: i18n('P2Pool needs ZMQ turned on to mine with this node'),
+  })
+})
+
+export const dependencies = sdk.Dependencies.of()
+  .addDependency(tor)
+  .addDependency(monerod)

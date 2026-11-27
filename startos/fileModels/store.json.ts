@@ -4,11 +4,15 @@ import { sdk } from '../sdk'
 const shape = z.looseObject({
   walletAddress: z.string().catch(''),
   miniSidechain: z.boolean().catch(true),
+  // Unset on installs from before the choice existed; read it through `monerodSource`.
+  monerodSource: z.enum(['startos', 'external']).optional().catch(undefined),
   monerodHost: z.string().catch(''),
   monerodRpcPort: z.number().catch(18081),
   monerodZmqPort: z.number().catch(18083),
   logLevel: z.number().min(0).max(6).catch(3),
 })
+
+export type Store = z.infer<typeof shape>
 
 export const storeJson = FileHelper.json(
   { base: sdk.volumes.main, subpath: './store.json' },

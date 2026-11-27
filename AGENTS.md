@@ -34,7 +34,7 @@ verified, tried, and decided belongs in the commit message and the PR body.
 
 ## This repo
 
-- **Don't add the `monerod` package as a dependency or suggest it in docs** — it exports only the restricted RPC, which cannot submit the blocks the pool finds.
+- **In Monero-on-this-server mode, read Monero's login from its `public` volume mounted into the subcontainer, never from its `monerod` volume** — `monerod` holds the chain and `monero.conf`, and `rpc-unrestricted-login` is the login Expose Unrestricted RPC actually accepts.
 - **Keep `--p2p [::]:37889,0.0.0.0:37889` pinned** — `--mini` would otherwise move the listener to 37888, off the exported interface's port.
 - **Keep `externalPort: 28722` in `init/onionTarget.ts`** — peers dial every advertised onion on that port, never on the binding's own.
 - **Don't add `--socks5` for outbound Tor** — p2pool routes its monerod RPC and ZMQ through it too, cutting off a LAN monerod.

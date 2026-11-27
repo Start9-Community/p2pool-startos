@@ -1,4 +1,5 @@
 import { T } from '@start9labs/start-sdk'
+import type { Store } from './fileModels/store.json'
 import { rm } from 'node:fs/promises'
 import { sdk } from './sdk'
 
@@ -37,3 +38,10 @@ export function torOnions(effects: T.Effects) {
     ).sort((a, b) => a.hostname.localeCompare(b.hostname)),
   )
 }
+
+/** Which Monero node P2Pool uses; an install that predates the choice keeps the host it was given. */
+export const monerodSource = (store: Store) =>
+  store.monerodSource ?? (store.monerodHost ? 'external' : 'startos')
+
+// Monero's `public` volume, mounted read-only into the P2Pool subcontainer.
+export const monerodMountpoint = '/mnt/monerod'

@@ -1,8 +1,9 @@
 import { i18n } from '../i18n'
 import { sdk } from '../sdk'
 import { storeJson } from '../fileModels/store.json'
+import { monerodSource } from '../utils'
 
-const { InputSpec, Value } = sdk
+const { InputSpec, Value, Variants } = sdk
 
 export const inputSpec = InputSpec.of({
   walletAddress: Value.text({
@@ -28,42 +29,60 @@ export const inputSpec = InputSpec.of({
     ),
     default: true,
   }),
-  monerodHost: Value.text({
-    name: i18n('Monero Node Host'),
+  monero: Value.union({
+    name: i18n('Monero Node'),
     description: i18n(
-      'Hostname or IP address of your Monero node (monerod). Example: your-monero-node.local',
+      'Where P2Pool gets blocks from and submits the ones your pool finds.\n- Monero on this server: the Monero service on this StartOS server. P2Pool turns on what it needs there and connects with a login it reads from Monero.\n- External Monero node: a monerod you run elsewhere, with unrestricted RPC and ZMQ enabled.',
     ),
-    warning: i18n(
-      'P2Pool needs a Monero node with unrestricted RPC and ZMQ enabled, reachable from your StartOS server. The StartOS Monero service currently exposes only restricted RPC and will not work — you must run a separate, dedicated monerod.',
-    ),
-    required: true,
-    default: null,
-  }),
-  monerodRpcPort: Value.number({
-    name: i18n('Monero RPC Port'),
-    description: i18n(
-      "Your Monero node's unrestricted RPC port (default 18081). P2Pool requires the unrestricted RPC — a restricted node (typically 18089) cannot submit the blocks your pool finds.",
-    ),
-    required: false,
-    default: 18081,
-    min: 1,
-    max: 65535,
-    step: null,
-    integer: true,
-    units: null,
-  }),
-  monerodZmqPort: Value.number({
-    name: i18n('Monero ZMQ Port'),
-    description: i18n(
-      "The port your Monero node publishes ZMQ notifications on: the port in monerod's --zmq-pub option, which P2Pool requires. Not the ZMQ RPC port.",
-    ),
-    required: false,
-    default: 18083,
-    min: 1,
-    max: 65535,
-    step: null,
-    integer: true,
-    units: null,
+    default: 'startos',
+    variants: Variants.of({
+      startos: {
+        name: i18n('Monero on this server'),
+        spec: InputSpec.of({}),
+      },
+      external: {
+        name: i18n('External Monero node'),
+        spec: InputSpec.of({
+          monerodHost: Value.text({
+            name: i18n('Monero Node Host'),
+            description: i18n(
+              'Hostname or IP address of your Monero node (monerod). Example: your-monero-node.local',
+            ),
+            warning: i18n(
+              'P2Pool needs a Monero node with unrestricted RPC and ZMQ enabled, reachable from your StartOS server. For the Monero service on this server, choose Monero on this server instead.',
+            ),
+            required: true,
+            default: null,
+          }),
+          monerodRpcPort: Value.number({
+            name: i18n('Monero RPC Port'),
+            description: i18n(
+              "Your Monero node's unrestricted RPC port (default 18081). P2Pool requires the unrestricted RPC — a restricted node (typically 18089) cannot submit the blocks your pool finds.",
+            ),
+            required: false,
+            default: 18081,
+            min: 1,
+            max: 65535,
+            step: null,
+            integer: true,
+            units: null,
+          }),
+          monerodZmqPort: Value.number({
+            name: i18n('Monero ZMQ Port'),
+            description: i18n(
+              "The port your Monero node publishes ZMQ notifications on: the port in monerod's --zmq-pub option, which P2Pool requires. Not the ZMQ RPC port.",
+            ),
+            required: false,
+            default: 18083,
+            min: 1,
+            max: 65535,
+            step: null,
+            integer: true,
+            units: null,
+          }),
+        }),
+      },
+    }),
   }),
   logLevel: Value.number({
     name: i18n('Log Level'),
@@ -88,7 +107,7 @@ export const configure = sdk.Action.withInput(
   async ({ effects }) => ({
     name: i18n('Configure P2Pool'),
     description: i18n(
-      'Set your Monero wallet address, monerod connection, and P2Pool options.',
+      'Set your Monero wallet address, the Monero node to use, and P2Pool options.',
     ),
     warning: null,
     allowedStatuses: 'any',
@@ -106,9 +125,17 @@ export const configure = sdk.Action.withInput(
     return {
       walletAddress: store.walletAddress || undefined,
       miniSidechain: store.miniSidechain,
-      monerodHost: store.monerodHost || undefined,
-      monerodRpcPort: store.monerodRpcPort,
-      monerodZmqPort: store.monerodZmqPort,
+      monero:
+        monerodSource(store) === 'startos'
+          ? { selection: 'startos' as const, value: {} }
+          : {
+              selection: 'external' as const,
+              value: {
+                monerodHost: store.monerodHost || undefined,
+                monerodRpcPort: store.monerodRpcPort,
+                monerodZmqPort: store.monerodZmqPort,
+              },
+            },
       logLevel: store.logLevel,
     }
   },
@@ -118,9 +145,12 @@ export const configure = sdk.Action.withInput(
     await storeJson.merge(effects, {
       walletAddress: input.walletAddress,
       miniSidechain: input.miniSidechain,
-      monerodHost: input.monerodHost,
-      monerodRpcPort: input.monerodRpcPort ?? 18081,
-      monerodZmqPort: input.monerodZmqPort ?? 18083,
+      monerodSource: input.monero.selection,
+      ...(input.monero.selection === 'external' && {
+        monerodHost: input.monero.value.monerodHost,
+        monerodRpcPort: input.monero.value.monerodRpcPort ?? 18081,
+        monerodZmqPort: input.monero.value.monerodZmqPort ?? 18083,
+      }),
       logLevel: input.logLevel ?? 3,
     })
 
