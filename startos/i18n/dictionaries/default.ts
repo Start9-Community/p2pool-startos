@@ -20,7 +20,7 @@ const dict = {
   'Log Level': 16,
   'How much P2Pool writes to the service logs, from 0 (least) to 6 (most). The default of 3 is already verbose: lower it to quiet the logs, or raise it while troubleshooting.': 17,
   'Configure P2Pool': 18,
-  'Set your Monero wallet address, monerod connection, and P2Pool options.': 19,
+  'Set your Monero wallet address, the Monero node to use, and P2Pool options.': 19,
   'Configuration Saved': 20,
   'P2Pool configuration saved.': 21,
   'Stratum (miners)': 22,
@@ -29,7 +29,13 @@ const dict = {
   'Must be a 95-character Monero primary address starting with 4 (not a subaddress or integrated address).': 25,
   'P2P (sidechain)': 26,
   'P2Pool peer-to-peer port for connecting to other P2Pool nodes': 27,
-  'P2Pool needs a Monero node with unrestricted RPC and ZMQ enabled, reachable from your StartOS server. The StartOS Monero service currently exposes only restricted RPC and will not work — you must run a separate, dedicated monerod.': 28,
+  'P2Pool needs a Monero node with unrestricted RPC and ZMQ enabled, reachable from your StartOS server. For the Monero service on this server, choose Monero on this server instead.': 28,
+  'Monero Node': 29,
+  'Where P2Pool gets blocks from and submits the ones your pool finds.\n- Monero on this server: the Monero service on this StartOS server. P2Pool turns on what it needs there and connects with a login it reads from Monero.\n- External Monero node: a monerod you run elsewhere, with unrestricted RPC and ZMQ enabled.': 30,
+  'Monero on this server': 31,
+  'External Monero node': 32,
+  'P2Pool needs ZMQ turned on to mine with this node': 33,
+  'Install or update Monero to 0.18.5.4:7 or later to use Monero on this server.': 34,
 } as const
 
 export type I18nKey = keyof typeof dict

@@ -1,10 +1,6 @@
 # P2Pool
 
-> **You must run your own external Monero node.** P2Pool needs a `monerod` with
-> **unrestricted RPC** and **ZMQ** enabled, reachable from your StartOS server. The
-> StartOS Monero package will **not** work for this yet — it exposes only a restricted
-> RPC, and a restricted node can't submit the blocks your pool finds. Run a separate,
-> dedicated monerod (another machine on your LAN is ideal).
+P2Pool needs a Monero node with the **unrestricted RPC** and **ZMQ** turned on: a restricted node can't submit the blocks your pool finds. Use the Monero service on this server, or a `monerod` you run elsewhere.
 
 ## Documentation
 
@@ -16,35 +12,41 @@
 - **Your own P2Pool node** — a decentralized, 0%-fee Monero pool with no operator and no registration.
 - **A Stratum interface** your miners connect to directly.
 - **A P2P interface** for connecting to the rest of the P2Pool sidechain.
-- **A Configure action** to set your wallet and monerod connection.
+- **A Configure action** to set your wallet and choose your Monero node.
 
 ## Getting set up
 
-1. **Prepare your Monero node first.** On the machine running `monerod`, enable
-   unrestricted RPC and ZMQ and bind them where your StartOS box can reach them —
-   for example:
+1. **Run the Configure P2Pool action.** Set your Monero **primary** wallet address
+   (it starts with `4`). **Use P2Pool Mini** picks the sidechain you mine on; it is
+   on by default. Under **Monero Node**, choose one:
+   - **Monero on this server** — the Monero service on this StartOS server. Install
+     Monero 0.18.5.4:7 or later first and let it sync. If Monero is missing or
+     too old to publish its login volume, P2Pool shows an install/update health
+     check and retries automatically when that volume becomes available.
+     P2Pool then raises a task on Monero to turn on **ZMQ**; approve it there.
+     P2Pool finds the node and its login by itself.
+   - **External Monero node** — a `monerod` you run elsewhere. Enter its **host**
+     and, if you changed them, the RPC and ZMQ ports. On that machine, enable
+     unrestricted RPC and ZMQ and bind them where your StartOS box can reach
+     them, for example:
 
-   ```
-   monerod --zmq-pub tcp://0.0.0.0:18083 \
-           --rpc-bind-ip 0.0.0.0 --confirm-external-bind \
-           --out-peers 32 --in-peers 64 \
-           --disable-dns-checkpoints --enable-dns-blocklist
-   ```
+     ```
+     monerod --zmq-pub tcp://0.0.0.0:18083 \
+             --rpc-bind-ip 0.0.0.0 --confirm-external-bind \
+             --out-peers 32 --in-peers 64 \
+             --disable-dns-checkpoints --enable-dns-blocklist
+     ```
 
-   Keep this node on a trusted LAN or firewall the RPC port to your StartOS box —
-   an unrestricted RPC should never be open to the internet.
+     Keep that node on a trusted LAN or firewall its RPC port to your StartOS box:
+     an unrestricted RPC should never be open to the internet.
 
-2. **Run the Configure P2Pool action.** Set your Monero **primary** wallet address
-   (it starts with `4`), your monerod **host**, and — if you changed them — the RPC
-   and ZMQ ports. **Use P2Pool Mini** picks the sidechain you mine on; it is on
-   by default.
-
-3. **Start the service.** P2Pool connects to monerod first, then opens its stratum
+2. **Start the service.** P2Pool connects to Monero first, then opens its stratum
    port; the **Stratum Port** health check turns green once it is ready for miners.
-   If it stays red, recheck the monerod host, ports, RPC/ZMQ flags, and that the
-   node is reachable from your StartOS box.
+   With Monero on this server, check that Monero is synced and its task is done.
+   With an external node, recheck its host, ports, RPC/ZMQ flags, and that it is
+   reachable from your StartOS box.
 
-4. **Point your miners at the Stratum interface.** Copy its address from the
+3. **Point your miners at the Stratum interface.** Copy its address from the
    service's interfaces, and use it as your pool URL.
 
 ## Using P2Pool
@@ -81,7 +83,7 @@ your Monero node, still go over your regular network.
 ### Re-configuring
 
 Run **Configure P2Pool** again any time to change your wallet, switch between the
-Mini and main sidechain, or adjust the monerod connection. A running service
+Mini and main sidechain, or change which Monero node it uses. A running service
 restarts with the new settings on its own.
 
 ### Checking your shares

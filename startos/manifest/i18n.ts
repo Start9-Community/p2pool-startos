@@ -47,3 +47,16 @@ export const torDescription = {
   fr_FR:
     "Sert l'adresse .onion à laquelle les autres nœuds P2Pool vous joignent via Tor",
 }
+
+export const monerodDescription = {
+  en_US:
+    'Supplies blocks and accepts the ones your pool finds, when P2Pool uses Monero on this server',
+  es_ES:
+    'Proporciona bloques y acepta los que encuentra tu pool, cuando P2Pool usa Monero en este servidor',
+  de_DE:
+    'Liefert Blöcke und nimmt die von deinem Pool gefundenen an, wenn P2Pool Monero auf diesem Server nutzt',
+  pl_PL:
+    'Dostarcza bloki i przyjmuje te znalezione przez Twoją pulę, gdy P2Pool korzysta z Monero na tym serwerze',
+  fr_FR:
+    'Fournit les blocs et accepte ceux que trouve votre pool, quand P2Pool utilise Monero sur ce serveur',
+}

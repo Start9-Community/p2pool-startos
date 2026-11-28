@@ -80,22 +80,25 @@ One model, and it is the whole configuration surface.
 | ------------ | ------ | ----------------------- | ---------- |
 | `store.json` | JSON   | Yes — `FileHelper.json` | The action |
 
-Six fields: the payout wallet address, whether to use the mini sidechain, the Monero node's host and its two ports, and the log level.
+Seven fields: the payout wallet address, whether to use the mini sidechain, which Monero node to use (`monerodSource`), an external node's host and its two ports, and the log level. `monerodSource` is unset on installs from before the choice existed; `monerodSource()` in `startos/utils.ts` reads such an install as `external` when it has a host, so it keeps the node it was given.
 
 The model is read reactively, so any change restarts the node with new arguments. It is also merged on every init, so a field added by a later version arrives with its default rather than missing.
 
 ## Dependencies
 
-**Tor is the only declared dependency, and it is optional** — `running`, version `>=0.4.9.17:4`, enabled while Tor serves a .onion on the P2P interface. That release is the first with Set Onion Target, which the [inbound Tor](#inbound-tor) path needs; an older Tor leaves the onion on 37889 and forwards its peers to the binding itself. **P2Pool still cannot run without a Monero node**, and it has to be one you provide.
+Two optional dependencies.
 
-| Needs                       | Where it comes from                 |
-| --------------------------- | ----------------------------------- |
-| Monero **unrestricted** RPC | A monerod you run and point this at |
-| Monero ZMQ                  | The same node                       |
+| Dependency | Kind      | Version        | Health checks                 | Enabled while                                |
+| ---------- | --------- | -------------- | ----------------------------- | -------------------------------------------- |
+| Tor        | `running` | `>=0.4.9.17:4` | —                             | Tor serves a .onion on the P2P interface     |
+| Monero     | `running` | `>=0.18.5.4:7` | `monerod`, `unrestricted-rpc` | the Monero node is **Monero on this server** |
 
-**The Monero package on StartOS will not work for this**, and that is not an oversight in either package: P2Pool needs the _unrestricted_ RPC in order to submit the blocks your pool finds, and the Monero package deliberately publishes only the restricted RPC. Running P2Pool here means running a separate, dedicated monerod that this service can reach — on the LAN, or elsewhere.
+Tor 0.4.9.17:4 is the first with Set Onion Target, which the [inbound Tor](#inbound-tor) path needs; an older Tor leaves the onion on 37889 and forwards its peers to the binding itself.
 
-That node must have ZMQ enabled as well, since P2Pool watches it for new blocks rather than polling.
+**P2Pool cannot run without a Monero node with the unrestricted RPC and ZMQ.** It needs the _unrestricted_ RPC to submit the blocks your pool finds, and ZMQ because it watches the node for new blocks rather than polling. The configure action offers two sources:
+
+- **Monero on this server** (`monerodSource: startos`, the default for a new install). While it is selected, the Monero dependency is enabled, and its init raises a `critical` task on Monero's hidden `autoconfig` action asking for `zmq: true`; it re-raises whenever Monero drifts from it. Monero 0.18.5.4:7 is the first to serve its loopback unrestricted RPC to other services, on its bridge-only `rpc-unrestricted` host and always behind a login. `main` resolves that host's and Monero's `zmq-pubsub` bridge addresses with `getBridgeAddress`, mounts Monero's `public` volume read-only at `/mnt/monerod` in the P2Pool subcontainer, and reads `rpc-unrestricted-login` from it with `.const()`. It passes the address's host as `--host`, both ports, and the login as `--rpc-login`; p2pool authenticates with HTTP Digest, which is what Monero accepts. A changed login or address restarts P2Pool. If Monero is absent or lacks the `public` volume, `main` mounts nothing and reports a failing health check asking for Monero 0.18.5.4:7 or later; its manifest watch retries after installation or an update adds the volume. If either address or the login is missing, `main` fails with a message pointing at Monero's ZMQ setting.
+- **External Monero node** (`monerodSource: external`). The host and two ports from the form, with no login, exactly as before the choice existed.
 
 ## Network Access and Interfaces
 
@@ -127,7 +130,7 @@ Two interfaces, both raw TCP with the external port preserved, and one unexporte
 
 Install seeds an empty configuration. There is no wizard and no credential.
 
-**The service will not start until it is configured**, and it enforces that itself rather than through an install-time task: on a start with no wallet address or no node host, it raises the configuration task and then fails deliberately. The result is a service in an error state with the task visible, which is better than a node quietly mining to nothing.
+**The service will not start until it is configured**, and it enforces that itself rather than through an install-time task: on a start with no wallet address, or with an external node and no host, it raises the configuration task and then fails deliberately. The result is a service in an error state with the task visible, which is better than a node quietly mining to nothing.
 
 Once configured, it connects to your Monero node, downloads the sidechain, and opens the stratum port. **That first sync is slow** — the daemon carries a three-minute grace period because the stratum port does not open until P2Pool has caught up enough to serve work.
 
@@ -139,9 +142,9 @@ One action.
 
 ### Configure P2Pool
 
-Sets everything: the payout address, the sidechain choice, the Monero node's host and ports, and the log level.
+Sets everything: the payout address, the sidechain choice, the Monero node, and the log level.
 
-- **What it changes:** all six fields in the configuration.
+- **What it changes:** the fields in the configuration. Choosing **External Monero node** writes its host and ports; choosing **Monero on this server** leaves the stored external values alone, so switching back restores them.
 - **Cost:** the service restarts, since the values are command-line arguments.
 - **Repeat safety:** idempotent, pre-filled with the current values.
 - **The address must be a primary Monero address** — 95 characters beginning with `4`; the form rejects subaddresses and integrated addresses. P2Pool's `--wallet` takes the main address only. Upstream can also mine to a subaddress of that wallet through a separate `--subaddress` option ([command-line docs](https://github.com/SChernykh/p2pool/blob/master/docs/COMMAND_LINE.MD)), but this package does not offer it.
@@ -173,7 +176,7 @@ The `onion-relay` daemon's readiness (port 28723 listening) is not displayed.
 
 It does not report on shares, hashrate, or payouts. Those are in the node's own log and on the P2Pool observer sites.
 
-**A check that never goes green usually means the Monero node** — unreachable, restricted RPC rather than unrestricted, or ZMQ not enabled.
+**A check that never goes green usually means the Monero node.** With Monero on this server: Monero still syncing, or its task from P2Pool not done. With an external node: unreachable, restricted RPC rather than unrestricted, or ZMQ not enabled.
 
 ## Backups and Restore
 
@@ -187,7 +190,7 @@ A restored instance comes back configured, resyncs the sidechain, and resumes.
 
 ## Limitations and Differences
 
-1. **It needs a separate Monero node with unrestricted RPC and ZMQ.** The Monero package on StartOS cannot serve this.
+1. **It needs a Monero node with unrestricted RPC and ZMQ.** The Monero service on this server provides both once its task from P2Pool has turned ZMQ on; an external node has to be set up by hand.
 2. **The service refuses to start unconfigured**, by design.
 3. **Primary addresses only** — upstream's `--subaddress` option is not offered, and integrated addresses are rejected.
 4. **Switching sidechains resyncs** and does not carry your share position over.
@@ -211,11 +214,11 @@ subcontainers:
 volumes:
   main: /data # --data-dir; sidechain cache, peer list, plus store.json
 file_models:
-  - store.json # wallet address, mini toggle, monerod host + rpc/zmq ports, log level
+  - store.json # wallet address, mini toggle, monerodSource, external monerod host + rpc/zmq ports, log level
 startos_managed_env_vars: [] # p2pool is configured entirely by argv
 dependencies:
   - tor # optional, >=0.4.9.17:4, running; enabled while a P2P interface has a .onion
-# and an EXTERNAL monerod with unrestricted RPC + ZMQ (not a declared dependency)
+  - monerod # optional, >=0.18.5.4:7, running; enabled for Monero on this server; public volume at /mnt/monerod (rpc-unrestricted-login)
 interfaces:
   stratum: { type: api, port: 3333 } # raw TCP, unauthenticated by design
   p2p: { type: p2p, port: 37889 } # pinned so --mini doesn't shift it to 37888; its .onion answers on 28722
@@ -224,6 +227,7 @@ actions:
   - configure
 tasks:
   - { action: configure, severity: important } # raised from main.ts, not at install
+  - { action: autoconfig, severity: critical } # on monerod, for Monero on this server: zmq
 health_checks:
   - primary # displayed "Stratum Port"; opens only once monerod is reachable, 180s grace
   - onion-relay # not displayed; port 28723 listening

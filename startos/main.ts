@@ -1,8 +1,20 @@
+import { FileHelper, T } from '@start9labs/start-sdk'
+import { manifest as monerodManifest } from 'monerod-startos/startos/manifest'
+import {
+  rpcUnrestrictedHostId,
+  rpcUnrestrictedLoginFileName,
+  rpcUnrestrictedPort,
+  rpcVolumeId,
+  zmqPubsubHostId,
+  zmqPubsubPort,
+} from 'monerod-startos/startos/utils'
 import { configure } from './actions/configure'
 import { storeJson } from './fileModels/store.json'
 import { i18n } from './i18n'
 import { sdk } from './sdk'
 import {
+  monerodMountpoint,
+  monerodSource,
   mount,
   p2pOnionPort,
   p2pOnionRelayPort,
@@ -36,7 +48,8 @@ export const main = sdk.setupMain(async ({ effects }) => {
   // If not yet configured, prompt the user and refuse to start. Launching with a
   // placeholder wallet would mine to an invalid address and spin on failed startup;
   // throwing leaves the service cleanly in error-state with the config task visible.
-  if (!walletAddress || !monerodHost) {
+  const source = monerodSource(store)
+  if (!walletAddress || (source === 'external' && !monerodHost)) {
     await sdk.action.createOwnTask(effects, configure, 'important', {
       reason: i18n('Configuration required'),
     })
@@ -45,15 +58,66 @@ export const main = sdk.setupMain(async ({ effects }) => {
     )
   }
 
+  if (source === 'startos') {
+    // Missing Monero volumes remain unmounted until the manifest watch detects one.
+    const hasPublicVolume = await sdk
+      .getServiceManifest(
+        effects,
+        'monerod',
+        (manifest) => manifest?.volumes.includes(rpcVolumeId) ?? false,
+      )
+      .const()
+    if (!hasPublicVolume) {
+      return sdk.Daemons.of(effects).addHealthCheck('primary', {
+        ready: {
+          display: i18n('Monero on this server'),
+          fn: () => ({
+            result: 'failure',
+            message: i18n(
+              'Install or update Monero to 0.18.5.4:7 or later to use Monero on this server.',
+            ),
+          }),
+        },
+        requires: [],
+      })
+    }
+  }
+
+  const subcontainer = sdk.SubContainer.of(
+    effects,
+    { imageId: 'p2pool' },
+    source === 'startos'
+      ? mount.mountDependency<typeof monerodManifest>({
+          dependencyId: 'monerod',
+          volumeId: rpcVolumeId,
+          subpath: null,
+          mountpoint: monerodMountpoint,
+          readonly: true,
+        })
+      : mount,
+    'p2pool-sub',
+  )
+
+  const node =
+    source === 'startos'
+      ? await localMonero(effects, await subcontainer.rootfs)
+      : {
+          host: monerodHost,
+          rpcPort: monerodRpcPort,
+          zmqPort: monerodZmqPort,
+          login: null,
+        }
+
   // Build p2pool argv
   const argsList: string[] = [
     'p2pool',
     '--host',
-    monerodHost,
+    node.host,
     '--rpc-port',
-    String(monerodRpcPort),
+    String(node.rpcPort),
     '--zmq-port',
-    String(monerodZmqPort),
+    String(node.zmqPort),
+    ...(node.login ? ['--rpc-login', node.login] : []),
     '--wallet',
     walletAddress,
     '--stratum',
@@ -90,13 +154,6 @@ export const main = sdk.setupMain(async ({ effects }) => {
   }
 
   const args = argsList as [string, ...string[]]
-
-  const subcontainer = sdk.SubContainer.of(
-    effects,
-    { imageId: 'p2pool' },
-    mount,
-    'p2pool-sub',
-  )
 
   return (
     sdk.Daemons.of(effects)
@@ -141,3 +198,41 @@ export const main = sdk.setupMain(async ({ effects }) => {
       })
   )
 })
+
+async function localMonero(effects: T.Effects, rootfs: string) {
+  const bridge = (hostId: string, internalPort: number) =>
+    sdk.host
+      .getBridgeAddress(effects, {
+        packageId: 'monerod',
+        hostId,
+        internalPort,
+        ssl: false,
+      })
+      .const()
+  const rpc = await bridge(rpcUnrestrictedHostId, rpcUnrestrictedPort)
+  const zmq = await bridge(zmqPubsubHostId, zmqPubsubPort)
+  const login = await FileHelper.string(
+    `${rootfs}${monerodMountpoint}/${rpcUnrestrictedLoginFileName}`,
+  )
+    .read((s) => s.trim() || null)
+    .const(effects)
+  if (!rpc || !zmq || !login) {
+    throw new Error(
+      'Monero on this server is not ready: turn on ZMQ in Monero (its task from P2Pool does it)',
+    )
+  }
+  const [host, rpcPort] = splitHostPort(rpc)
+  const [zmqHost, zmqPort] = splitHostPort(zmq)
+  // p2pool takes one --host for both connections.
+  if (zmqHost !== host) {
+    throw new Error(
+      `Monero's RPC (${rpc}) and ZMQ (${zmq}) resolve to different hosts`,
+    )
+  }
+  return { host, rpcPort, zmqPort, login }
+}
+
+function splitHostPort(address: string): [string, number] {
+  const colon = address.lastIndexOf(':')
+  return [address.slice(0, colon), Number(address.slice(colon + 1))]
+}
